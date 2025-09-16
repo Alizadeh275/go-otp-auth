@@ -130,7 +130,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "List users with pagination and search",
+                "description": "List users with optional search and pagination",
                 "produces": [
                     "application/json"
                 ],
@@ -141,19 +141,21 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Search by phone",
+                        "description": "Search by phone (optional)",
                         "name": "search",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "Page number",
+                        "default": 1,
+                        "description": "Page number (optional, default 1)",
                         "name": "page",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "Page size",
+                        "default": 10,
+                        "description": "Page size (optional, default 10)",
                         "name": "size",
                         "in": "query"
                     }
@@ -167,7 +169,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "internal",
+                        "description": "internal server error",
                         "schema": {
                             "type": "string"
                         }

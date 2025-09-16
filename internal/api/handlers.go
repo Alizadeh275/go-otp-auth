@@ -166,14 +166,14 @@ func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 
 // ListUsers godoc
 // @Summary List users
-// @Description List users with pagination and search
+// @Description List users with optional search and pagination
 // @Tags users
 // @Produce json
-// @Param search query string false "Search by phone"
-// @Param page query int false "Page number"
-// @Param size query int false "Page size"
+// @Param search query string false "Search by phone (optional)"
+// @Param page query int false "Page number (optional, default 1)" default(1)
+// @Param size query int false "Page size (optional, default 10)" default(10)
 // @Success 200 {object} map[string]interface{}
-// @Failure 500 {string} string "internal"
+// @Failure 500 {string} string "internal server error"
 // @Security BearerAuth
 // @Router /users [get]
 func (h *Handler) ListUsers(w http.ResponseWriter, r *http.Request) {

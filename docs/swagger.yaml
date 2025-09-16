@@ -100,17 +100,19 @@ paths:
       - Auth
   /users:
     get:
-      description: List users with pagination and search
+      description: List users with optional search and pagination
       parameters:
-      - description: Search by phone
+      - description: Search by phone (optional)
         in: query
         name: search
         type: string
-      - description: Page number
+      - default: 1
+        description: Page number (optional, default 1)
         in: query
         name: page
         type: integer
-      - description: Page size
+      - default: 10
+        description: Page size (optional, default 10)
         in: query
         name: size
         type: integer
@@ -123,7 +125,7 @@ paths:
             additionalProperties: true
             type: object
         "500":
-          description: internal
+          description: internal server error
           schema:
             type: string
       security:
