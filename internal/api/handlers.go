@@ -177,26 +177,45 @@ func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 // @Security BearerAuth
 // @Router /users [get]
 func (h *Handler) ListUsers(w http.ResponseWriter, r *http.Request) {
-	q := r.URL.Query().Get("search")
+	// Optional search query
+	search := r.URL.Query().Get("search")
+
+	// Pagination defaults
 	page := 1
 	size := 10
+
+	// Parse page if provided
 	if p := r.URL.Query().Get("page"); p != "" {
 		if pi, err := strconv.Atoi(p); err == nil && pi > 0 {
 			page = pi
 		}
 	}
+
+	// Parse size if provided, enforce max 100
 	if s := r.URL.Query().Get("size"); s != "" {
-		if si, err := strconv.Atoi(s); err == nil && si > 0 && si <= 100 {
-			size = si
+		if si, err := strconv.Atoi(s); err == nil && si > 0 {
+			if si > 100 {
+				size = 100
+			} else {
+				size = si
+			}
 		}
 	}
+
 	offset := (page - 1) * size
 	ctx := r.Context()
-	users, total, err := h.pg.ListUsers(ctx, q, offset, size)
+
+	users, total, err := h.pg.ListUsers(ctx, search, offset, size)
 	if err != nil {
 		log.Error().Err(err).Msg("list users")
-		http.Error(w, "internal", http.StatusInternalServerError)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
-	writeJSON(w, map[string]interface{}{"total": total, "page": page, "size": size, "data": users})
+
+	writeJSON(w, map[string]interface{}{
+		"total": total,
+		"page":  page,
+		"size":  size,
+		"data":  users,
+	})
 }

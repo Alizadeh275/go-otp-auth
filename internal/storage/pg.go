@@ -78,31 +78,44 @@ func (p *Postgres) GetUserByID(ctx context.Context, id int64) (*model.User, erro
 	return &u, nil
 }
 
-func (p *Postgres) ListUsers(ctx context.Context, search string, offset, limit int) ([]model.User, int, error) {
-	users := []model.User{}
+type User struct {
+	ID           int64  `db:"id" json:"id"`
+	Phone        string `db:"phone" json:"phone"`
+	RegisteredAt string `db:"registered_at" json:"registered_at"`
+}
+
+// ListUsers returns users with optional search and pagination
+func (pg *Postgres) ListUsers(ctx context.Context, search string, offset, limit int) ([]User, int, error) {
+	users := []User{}
 	var total int
-	q := "SELECT id, phone, registered_at FROM users"
-	countQ := "SELECT count(1) FROM users"
-	args := []interface{}{}
-	if search != "" {
-		q += " WHERE phone ILIKE $1"
-		countQ += " WHERE phone ILIKE $1"
-		args = append(args, "%"+search+"%")
+	var err error
+
+	if search == "" {
+		err = pg.db.SelectContext(ctx, &users, `
+			SELECT id, phone, registered_at
+			FROM users
+			ORDER BY id
+			LIMIT $1 OFFSET $2`, limit, offset)
+		if err != nil {
+			return nil, 0, err
+		}
+		err = pg.db.GetContext(ctx, &total, `SELECT COUNT(*) FROM users`)
+	} else {
+		err = pg.db.SelectContext(ctx, &users, `
+			SELECT id, phone, registered_at
+			FROM users
+			WHERE phone LIKE $1
+			ORDER BY id
+			LIMIT $2 OFFSET $3`, "%"+search+"%", limit, offset)
+		if err != nil {
+			return nil, 0, err
+		}
+		err = pg.db.GetContext(ctx, &total, `SELECT COUNT(*) FROM users WHERE phone LIKE $1`, "%"+search+"%")
 	}
-	q += " ORDER BY id ASC OFFSET $2 LIMIT $3"
-	args = append(args, offset, limit)
-	if err := p.db.SelectContext(ctx, &users, q, args...); err != nil {
+
+	if err != nil {
 		return nil, 0, err
 	}
-	// count
-	if search == "" {
-		if err := p.db.GetContext(ctx, &total, countQ); err != nil {
-			return nil, 0, err
-		}
-	} else {
-		if err := p.db.GetContext(ctx, &total, countQ, "%"+search+"%"); err != nil {
-			return nil, 0, err
-		}
-	}
+
 	return users, total, nil
 }
