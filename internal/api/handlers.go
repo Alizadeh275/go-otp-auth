@@ -149,18 +149,33 @@ func (h *Handler) VerifyOTP(w http.ResponseWriter, r *http.Request) {
 // @Security BearerAuth
 // @Router /users/{id} [get]
 func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
+	// Get user ID from JWT (set by AuthMiddleware)
+	authUserID, ok := GetUserIDFromContext(r)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Get requested ID
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		http.Error(w, "invalid id", http.StatusBadRequest)
 		return
 	}
-	ctx := r.Context()
-	u, err := h.pg.GetUserByID(ctx, id)
+
+	// Only allow access to own data
+	if id != authUserID {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
+	u, err := h.pg.GetUserByID(r.Context(), id)
 	if err != nil {
 		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
+
 	writeJSON(w, u)
 }
 
