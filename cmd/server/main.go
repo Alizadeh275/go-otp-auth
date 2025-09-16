@@ -68,7 +68,7 @@ func main() {
 	r.Get("/users", h.ListUsers) // public
 
 	// GetUser endpoint - protected
-	r.With(api.AuthMiddleware).Get("/users/{id}", h.GetUser)
+	r.With(api.AuthMiddleware).Get("/users/me", h.GetUser)
 
 	// Swagger UI routes
 	r.Get("/docs", func(w http.ResponseWriter, r *http.Request) {

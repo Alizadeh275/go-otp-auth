@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog/log"
 
 	"github.com/example/go-otp-auth/internal/auth"
@@ -137,40 +136,25 @@ func (h *Handler) VerifyOTP(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]interface{}{"token": tok, "user": user})
 }
 
-// GetUser godoc
-// @Summary Get user by ID
-// @Description Retrieve a single user by their ID
+// GetUserMe godoc
+// @Summary Get current user
+// @Description Retrieve details of the authenticated user
 // @Tags users
 // @Produce json
-// @Param id path int true "User ID"
 // @Success 200 {object} UserResponse
-// @Failure 400 {string} string "invalid id"
+// @Failure 401 {string} string "unauthorized"
 // @Failure 404 {string} string "not found"
 // @Security BearerAuth
-// @Router /users/{id} [get]
+// @Router /users/me [get]
 func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
-	// Get user ID from JWT (set by AuthMiddleware)
-	authUserID, ok := GetUserIDFromContext(r)
+	userID, ok := GetUserIDFromContext(r)
 	if !ok {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	// Get requested ID
-	idStr := chi.URLParam(r, "id")
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
-		return
-	}
-
-	// Only allow access to own data
-	if id != authUserID {
-		http.Error(w, "forbidden", http.StatusForbidden)
-		return
-	}
-
-	u, err := h.pg.GetUserByID(r.Context(), id)
+	ctx := r.Context()
+	u, err := h.pg.GetUserByID(ctx, userID)
 	if err != nil {
 		http.Error(w, "not found", http.StatusNotFound)
 		return

@@ -131,15 +131,9 @@ paths:
       summary: List users
       tags:
       - users
-  /users/{id}:
+  /users/me:
     get:
-      description: Retrieve a single user by their ID
-      parameters:
-      - description: User ID
-        in: path
-        name: id
-        required: true
-        type: integer
+      description: Retrieve details of the authenticated user
       produces:
       - application/json
       responses:
@@ -147,8 +141,8 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/api.UserResponse'
-        "400":
-          description: invalid id
+        "401":
+          description: unauthorized
           schema:
             type: string
         "404":
@@ -157,7 +151,7 @@ paths:
             type: string
       security:
       - BearerAuth: []
-      summary: Get user by ID
+      summary: Get current user
       tags:
       - users
 securityDefinitions:

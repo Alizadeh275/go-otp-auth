@@ -172,30 +172,21 @@ const docTemplate = `{
                 }
             }
         },
-        "/users/{id}": {
+        "/users/me": {
             "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieve a single user by their ID",
+                "description": "Retrieve details of the authenticated user",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "users"
                 ],
-                "summary": "Get user by ID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "User ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
+                "summary": "Get current user",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -203,8 +194,8 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.UserResponse"
                         }
                     },
-                    "400": {
-                        "description": "invalid id",
+                    "401": {
+                        "description": "unauthorized",
                         "schema": {
                             "type": "string"
                         }
