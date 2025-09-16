@@ -128,8 +128,6 @@ paths:
           description: internal server error
           schema:
             type: string
-      security:
-      - BearerAuth: []
       summary: List users
       tags:
       - users

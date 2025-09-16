@@ -64,12 +64,11 @@ func main() {
 	r.Post("/otp/request", h.RequestOTP)
 	r.Post("/otp/verify", h.VerifyOTP)
 
-	// User endpoints (protected)
-	r.Group(func(r chi.Router) {
-		r.Use(api.AuthMiddleware)
-		r.Get("/users", h.ListUsers)
-		r.Get("/users/{id}", h.GetUser)
-	})
+	// User endpoints
+	r.Get("/users", h.ListUsers) // public
+
+	// GetUser endpoint - protected
+	r.With(api.AuthMiddleware).Get("/users/{id}", h.GetUser)
 
 	// Swagger UI routes
 	r.Get("/docs", func(w http.ResponseWriter, r *http.Request) {

@@ -189,7 +189,6 @@ func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 // @Param size query int false "Page size (optional, default 10)" default(10)
 // @Success 200 {object} map[string]interface{}
 // @Failure 500 {string} string "internal server error"
-// @Security BearerAuth
 // @Router /users [get]
 func (h *Handler) ListUsers(w http.ResponseWriter, r *http.Request) {
 	// Optional search query

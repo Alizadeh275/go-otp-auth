@@ -125,11 +125,6 @@ const docTemplate = `{
         },
         "/users": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "List users with optional search and pagination",
                 "produces": [
                     "application/json"
