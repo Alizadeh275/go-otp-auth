@@ -3,33 +3,12 @@ package api
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
 	"time"
 
-	"github.com/rs/zerolog/log"
-
 	"github.com/example/go-otp-auth/internal/auth"
-	"github.com/example/go-otp-auth/internal/config"
-	pg "github.com/example/go-otp-auth/internal/storage"
 	"github.com/example/go-otp-auth/internal/util"
+	"github.com/rs/zerolog/log"
 )
-
-type Handler struct {
-	pg  *pg.Postgres
-	rd  *pg.Redis
-	cfg *config.Config
-}
-
-func NewHandler(pg *pg.Postgres, rd *pg.Redis, cfg *config.Config) *Handler {
-	return &Handler{pg: pg, rd: rd, cfg: cfg}
-}
-
-// UserResponse used for Swagger documentation
-type UserResponse struct {
-	ID           int64  `json:"id"`
-	Phone        string `json:"phone"`
-	RegisteredAt string `json:"registered_at"`
-}
 
 type reqPhone struct {
 	Phone string `json:"phone"`
@@ -38,11 +17,6 @@ type reqPhone struct {
 type reqVerify struct {
 	Phone string `json:"phone"`
 	OTP   string `json:"otp"`
-}
-
-func writeJSON(w http.ResponseWriter, v interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(v)
 }
 
 // RequestOTP generates an OTP for login/registration
@@ -63,6 +37,7 @@ func (h *Handler) RequestOTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid request", http.StatusBadRequest)
 		return
 	}
+
 	ctx := r.Context()
 	allowed, err := h.rd.AllowOTPRequest(ctx, req.Phone, h.cfg.RateLimitMax, time.Duration(h.cfg.RateLimitWindowSeconds)*time.Second)
 	if err != nil {
@@ -74,18 +49,21 @@ func (h *Handler) RequestOTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "rate limit exceeded", http.StatusTooManyRequests)
 		return
 	}
+
 	otp, err := util.GenerateOTP()
 	if err != nil {
 		http.Error(w, "failed to generate otp", http.StatusInternalServerError)
 		return
 	}
+
 	if err := h.rd.SaveOTP(ctx, req.Phone, otp, time.Duration(h.cfg.OTPTTLSeconds)*time.Second); err != nil {
 		log.Error().Err(err).Msg("redis save otp")
 		http.Error(w, "internal", http.StatusInternalServerError)
 		return
 	}
+
 	log.Info().Str("phone", req.Phone).Str("otp", otp).Msg("generated otp")
-	writeJSON(w, map[string]string{"status": "otp_generated"})
+	WriteJSON(w, map[string]string{"status": "otp_generated"})
 }
 
 // VerifyOTP verifies the OTP and returns JWT token
@@ -106,6 +84,7 @@ func (h *Handler) VerifyOTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid request", http.StatusBadRequest)
 		return
 	}
+
 	ctx := r.Context()
 	ok, err := h.rd.VerifyAndDeleteOTP(ctx, req.Phone, req.OTP)
 	if err != nil {
@@ -117,6 +96,7 @@ func (h *Handler) VerifyOTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid or expired otp", http.StatusUnauthorized)
 		return
 	}
+
 	user, err := h.pg.FindUserByPhone(ctx, req.Phone)
 	if err != nil {
 		u, cerr := h.pg.CreateUser(ctx, req.Phone)
@@ -127,93 +107,13 @@ func (h *Handler) VerifyOTP(w http.ResponseWriter, r *http.Request) {
 		}
 		user = u
 	}
+
 	tok, err := auth.CreateToken(user.ID)
 	if err != nil {
 		log.Error().Err(err).Msg("create token")
 		http.Error(w, "internal", http.StatusInternalServerError)
 		return
 	}
-	writeJSON(w, map[string]interface{}{"token": tok, "user": user})
-}
 
-// GetUserMe godoc
-// @Summary Get current user
-// @Description Retrieve details of the authenticated user
-// @Tags users
-// @Produce json
-// @Success 200 {object} UserResponse
-// @Failure 401 {string} string "unauthorized"
-// @Failure 404 {string} string "not found"
-// @Security BearerAuth
-// @Router /users/me [get]
-func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
-	userID, ok := GetUserIDFromContext(r)
-	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	ctx := r.Context()
-	u, err := h.pg.GetUserByID(ctx, userID)
-	if err != nil {
-		http.Error(w, "not found", http.StatusNotFound)
-		return
-	}
-
-	writeJSON(w, u)
-}
-
-// ListUsers godoc
-// @Summary List users
-// @Description List users with optional search and pagination
-// @Tags users
-// @Produce json
-// @Param search query string false "Search by phone (optional)"
-// @Param page query int false "Page number (optional, default 1)" default(1)
-// @Param size query int false "Page size (optional, default 10)" default(10)
-// @Success 200 {object} map[string]interface{}
-// @Failure 500 {string} string "internal server error"
-// @Router /users [get]
-func (h *Handler) ListUsers(w http.ResponseWriter, r *http.Request) {
-	// Optional search query
-	search := r.URL.Query().Get("search")
-
-	// Pagination defaults
-	page := 1
-	size := 10
-
-	// Parse page if provided
-	if p := r.URL.Query().Get("page"); p != "" {
-		if pi, err := strconv.Atoi(p); err == nil && pi > 0 {
-			page = pi
-		}
-	}
-
-	// Parse size if provided, enforce max 100
-	if s := r.URL.Query().Get("size"); s != "" {
-		if si, err := strconv.Atoi(s); err == nil && si > 0 {
-			if si > 100 {
-				size = 100
-			} else {
-				size = si
-			}
-		}
-	}
-
-	offset := (page - 1) * size
-	ctx := r.Context()
-
-	users, total, err := h.pg.ListUsers(ctx, search, offset, size)
-	if err != nil {
-		log.Error().Err(err).Msg("list users")
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	writeJSON(w, map[string]interface{}{
-		"total": total,
-		"page":  page,
-		"size":  size,
-		"data":  users,
-	})
+	WriteJSON(w, map[string]interface{}{"token": tok, "user": user})
 }
