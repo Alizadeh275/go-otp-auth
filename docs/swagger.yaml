@@ -1,0 +1,168 @@
+basePath: /
+definitions:
+  api.UserResponse:
+    properties:
+      id:
+        type: integer
+      phone:
+        type: string
+      registered_at:
+        type: string
+    type: object
+  api.reqPhone:
+    properties:
+      phone:
+        type: string
+    type: object
+  api.reqVerify:
+    properties:
+      otp:
+        type: string
+      phone:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: This is the OTP authentication service API
+  title: OTP Auth API
+  version: "1.0"
+paths:
+  /otp/request:
+    post:
+      consumes:
+      - application/json
+      description: Generate an OTP for the given phone number
+      parameters:
+      - description: Phone Number
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.reqPhone'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: otp_generated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: invalid request
+          schema:
+            type: string
+        "429":
+          description: rate limit exceeded
+          schema:
+            type: string
+        "500":
+          description: internal
+          schema:
+            type: string
+      summary: Generate OTP
+      tags:
+      - Auth
+  /otp/verify:
+    post:
+      consumes:
+      - application/json
+      description: Verify OTP and login or register the user
+      parameters:
+      - description: Phone and OTP
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.reqVerify'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: token and user
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: invalid request
+          schema:
+            type: string
+        "401":
+          description: invalid or expired otp
+          schema:
+            type: string
+        "500":
+          description: internal
+          schema:
+            type: string
+      summary: Verify OTP
+      tags:
+      - Auth
+  /users:
+    get:
+      description: List users with pagination and search
+      parameters:
+      - description: Search by phone
+        in: query
+        name: search
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: internal
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: List users
+      tags:
+      - users
+  /users/{id}:
+    get:
+      description: Retrieve a single user by their ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.UserResponse'
+        "400":
+          description: invalid id
+          schema:
+            type: string
+        "404":
+          description: not found
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Get user by ID
+      tags:
+      - users
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
