@@ -24,6 +24,8 @@ This is a Golang backend service implementing OTP-based login and registration w
 - [Database Choice](#database-choice)
 - [Swagger Documentation](#swagger-documentation)
 - [Monitoring Utilities](#monitoring-utilities)
+- [Environment Configuration](#environment-configuration)
+- [Services & Ports](#services-&-ports)
 
 ---
 
@@ -49,16 +51,10 @@ cd go-otp-auth
 go mod tidy
 ```
 
-3. Create a `.env` file (or set environment variables):
+3. Copy the `.env.example` to `.env` and update values as needed:
 
-```
-PORT=8080
-DATABASE_URL=postgres://otpuser:otppass@db:5432/otpdb?sslmode=disable
-REDIS_ADDR=redis:6379
-JWT_SECRET=replace-me-with-strong-secret
-OTP_TTL_SECONDS=120
-RATE_LIMIT_MAX=3
-RATE_LIMIT_WINDOW_SECONDS=600
+```bash
+cp .env.example .env
 ```
 
 4. Start PostgreSQL and Redis manually (if not using Docker).
@@ -192,7 +188,7 @@ Response:
 ## Swagger Documentation
 
 - Run `swag init -g ./cmd/server/main.go` to generate `docs/`
-- Swagger UI available at: `http://localhost:8080/docs`/
+- Swagger UI available at: `http://localhost:8080/docs/`
 - All endpoints documented with request/response types, parameters, and security.
 
 ---
@@ -201,6 +197,33 @@ Response:
 
 - **Adminer**: Lightweight web UI to inspect PostgreSQL database.
 - **RedisInsight**: Web UI for monitoring Redis keys, TTLs, and rate limiting/OTP operations.
+
+---
+
+## Environment Configuration
+
+- Copy `.env.example` to `.env`.
+- Do **not** commit `.env` to the repository; it contains sensitive credentials.
+- Include `.env` in `.gitignore` to prevent accidental commits.
+
+### Important
+
+The PostgreSQL environment variables (`POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`) **must match** the credentials used in `DATABASE_URL`. For example:
+
+Example `.env.example`:
+
+```
+PORT=8080
+DATABASE_URL=postgres://otpuser:otppass@db:5432/otpdb?sslmode=disable
+REDIS_ADDR=redis:6379
+JWT_SECRET=replace-me-with-strong-secret
+OTP_TTL_SECONDS=120
+RATE_LIMIT_MAX=3
+RATE_LIMIT_WINDOW_SECONDS=600
+POSTGRES_USER=otpuser
+POSTGRES_PASSWORD=otppass
+POSTGRES_DB=otpdb
+```
 
 ---
 
@@ -213,6 +236,17 @@ Response:
 - Pagination and search available for `/users`.
 
 ---
+
+## Services & Ports
+
+| Service         | Purpose                            | Port (external)|
+|-----------------|------------------------------------|----------------|
+| app             | Go OTP Auth backend API            | 8080           |
+| db              | PostgreSQL database                | 5432           |
+| adminer         | PostgreSQL Admin UI                | 8088           |
+| redis           | Redis for OTP storage & rate limit | 6379           |
+| redisinsight    | Redis monitoring UI                | 5540           |
+
 
 **Author:** Sajjad Alizadeh Fard  
 **Date:** 2025-09-16
