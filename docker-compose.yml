@@ -33,7 +33,7 @@ services:
 
   adminer:
     image: adminer
-    container_name: adminer_ui_2
+    container_name: adminer_ui
     restart: always
     ports:
       - "8088:8080"
